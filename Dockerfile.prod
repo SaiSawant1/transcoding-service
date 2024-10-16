@@ -1,0 +1,15 @@
+# Use a base image with FFmpeg installed
+FROM jrottenberg/ffmpeg:latest
+
+# Set the working directory
+WORKDIR /app
+
+# Create directories for videos and output
+RUN mkdir -p /app/videos /app/readyFile
+
+# Copy the video files into the container (this is optional if using volume mounts)
+COPY videos /app/videos
+
+# Entry point to process videos
+ENTRYPOINT ["ffmpeg"]
+
