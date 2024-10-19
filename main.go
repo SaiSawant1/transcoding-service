@@ -13,6 +13,7 @@ func main() {
 
 	if err != nil {
 		log.Printf("FAILED TO FETCH MESSAGE FROM QUEUE:[ERROR]:%s\n", err)
+		return
 	}
 
 	// download the file
