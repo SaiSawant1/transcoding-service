@@ -1,10 +1,12 @@
-FROM golang:1.23.2-bookworm
+FROM golang:1.22.8-alpine3.20
 
-RUN apt-get update && apt-get install -y make
+# Install make and ffmpeg
+RUN apk update && apk add make ffmpeg
 
 WORKDIR /app
 
 # Declare a volume for data persistence
+VOLUME /app/data
 
 COPY . .
 
@@ -17,3 +19,4 @@ RUN make build
 EXPOSE 8000
 
 CMD ["./bin/TRANSCODING-SERVICE"]
+
