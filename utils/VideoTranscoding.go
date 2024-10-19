@@ -45,6 +45,7 @@ func FetchMessage() (Message, error) {
 	var msg Message
 	err = json.Unmarshal(body, &msg)
 	if err != nil {
+		log.Printf("debug: fialed to Unmarshal %s", err)
 		return Message{}, err
 	}
 
