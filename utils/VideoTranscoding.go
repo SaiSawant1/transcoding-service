@@ -23,13 +23,38 @@ type Message struct {
 	Path     string `json:"path"`
 }
 
-func FetchMessage() (Message, error) {
+type UtilConfig struct {
+	API_URL        string
+	API_KEY        string
+	Client         *supabase.Client
+	QUEUE_BASE_URL string
+}
+
+func NewUtil() *UtilConfig {
+	// load env
 	err := godotenv.Load(".ENVIRONMENT_VARIABLE")
 	if err != nil {
 		err = godotenv.Load("ENVIRONMENT_VARIABLE")
 	}
 	QUEUE_BASE_URL := os.Getenv("QUEUE_BASE_URL")
-	res, err := http.Get(QUEUE_BASE_URL + "/get-message")
+	API_URL := os.Getenv("API_URL")
+	API_KEY := os.Getenv("API_KEY")
+	// create supabase client
+	client, err := supabase.NewClient(API_URL, API_KEY, &supabase.ClientOptions{})
+	if err != nil {
+		return nil
+	}
+
+	return &UtilConfig{
+		API_URL:        API_URL,
+		API_KEY:        API_KEY,
+		Client:         client,
+		QUEUE_BASE_URL: QUEUE_BASE_URL,
+	}
+}
+
+func (util *UtilConfig) FetchMessage() (Message, error) {
+	res, err := http.Get(util.QUEUE_BASE_URL + "/get-message")
 	if err != nil {
 		return Message{}, err
 	}
@@ -49,21 +74,9 @@ func FetchMessage() (Message, error) {
 
 }
 
-func DownloadFIle(msg Message) ([]byte, error) {
+func (util *UtilConfig) DownloadFIle(msg Message) ([]byte, error) {
 
-	err := godotenv.Load(".ENVIRONMENT_VARIABLE")
-	if err != nil {
-		err = godotenv.Load("ENVIRONMENT_VARIABLE")
-	}
-	API_URL := os.Getenv("API_URL")
-	API_KEY := os.Getenv("API_KEY")
-
-	client, err := supabase.NewClient(API_URL, API_KEY, &supabase.ClientOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	fileBytes, err := client.Storage.DownloadFile("temp", msg.Path, storage_go.UrlOptions{})
+	fileBytes, err := util.Client.Storage.DownloadFile("temp", msg.Path, storage_go.UrlOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +84,7 @@ func DownloadFIle(msg Message) ([]byte, error) {
 	return fileBytes, nil
 }
 
-func SaveVideoInDir(fileBytes []byte) (string, error) {
+func (util *UtilConfig) SaveVideoInDir(fileBytes []byte) (string, error) {
 
 	videoPath := "./videos"                   // Change to your desired path
 	inputFilePath := videoPath + "/input.mp4" // Change the extension as needed
@@ -102,7 +115,7 @@ func SaveVideoInDir(fileBytes []byte) (string, error) {
 
 // splitVideoIntoSegments splits the video into segments using ffmpeg
 // NOTE:- ffmpeg -i ../videos/input.mp4 -f segment -segment_time 10 -c copy ../output/output%03d.ts
-func SplitVideoIntoSegments(input string) error {
+func (util *UtilConfig) SplitVideoIntoSegments(input string) error {
 
 	// Get the absolute path of the input and output
 	inputPath, err := filepath.Abs("./videos/input.mp4")
@@ -137,19 +150,8 @@ func SplitVideoIntoSegments(input string) error {
 	return nil
 }
 
-func UploadSegmentsToSupabase(id string) ([]string, error) {
+func (util *UtilConfig) UploadSegmentsToSupabase(id string) ([]string, error) {
 	var segmentFiles []string
-	err := godotenv.Load(".ENVIRONMENT_VARIABLE")
-	if err != nil {
-		err = godotenv.Load("ENVIRONMENT_VARIABLE")
-	}
-	API_URL := os.Getenv("API_URL")
-	API_KEY := os.Getenv("API_KEY")
-
-	client, err := supabase.NewClient(API_URL, API_KEY, &supabase.ClientOptions{})
-	if err != nil {
-		return nil, err
-	}
 
 	// Read the segment files created by ffmpeg
 	files, err := filepath.Glob("output/output*.ts")
@@ -166,11 +168,11 @@ func UploadSegmentsToSupabase(id string) ([]string, error) {
 
 		// Upload the file to Supabase Storage
 		filePath := id + strings.Split(file, "/")[1]
-		_, err = client.Storage.UploadFile("transcoded-videos", filePath, bytes.NewReader(data), storage_go.FileOptions{})
+		_, err = util.Client.Storage.UploadFile("transcoded-videos", filePath, bytes.NewReader(data), storage_go.FileOptions{})
 		if err != nil {
 			return nil, err
 		}
-		res := client.Storage.GetPublicUrl("transcoded-videos", filePath, storage_go.UrlOptions{})
+		res := util.Client.Storage.GetPublicUrl("transcoded-videos", filePath, storage_go.UrlOptions{})
 		segmentFiles = append(segmentFiles, res.SignedURL)
 
 	}
@@ -178,7 +180,7 @@ func UploadSegmentsToSupabase(id string) ([]string, error) {
 }
 
 // createM3U8File creates an M3U8 file with the given public URLs
-func CreateM3U8File(segmentFiles []string, id string) error {
+func (util *UtilConfig) CreateM3U8File(segmentFiles []string, id string) error {
 
 	indexFolderPath, err := filepath.Abs("./index")
 	if err != nil {
@@ -208,18 +210,7 @@ func CreateM3U8File(segmentFiles []string, id string) error {
 	return nil
 }
 
-func UploadM3U8ToSupabase() error {
-	err := godotenv.Load(".ENVIRONMENT_VARIABLE")
-	if err != nil {
-		err = godotenv.Load("ENVIRONMENT_VARIABLE")
-	}
-	API_URL := os.Getenv("API_URL")
-	API_KEY := os.Getenv("API_KEY")
-
-	client, err := supabase.NewClient(API_URL, API_KEY, &supabase.ClientOptions{})
-	if err != nil {
-		return err
-	}
+func (util *UtilConfig) UploadM3U8ToSupabase() error {
 
 	// Read the segment files created by ffmpeg
 	files, err := filepath.Glob("index/*.m3u8")
@@ -233,16 +224,16 @@ func UploadM3U8ToSupabase() error {
 		}
 		//upload to supabase
 		supabasePath := strings.Split(file, "/")[1]
-		_, err = client.Storage.UploadFile("m3u8_index", supabasePath, bytes.NewReader(data), storage_go.FileOptions{})
+		_, err = util.Client.Storage.UploadFile("m3u8_index", supabasePath, bytes.NewReader(data), storage_go.FileOptions{})
 		// get public url
-		res := client.Storage.GetPublicUrl("m3u8_index", supabasePath, storage_go.UrlOptions{})
+		res := util.Client.Storage.GetPublicUrl("m3u8_index", supabasePath, storage_go.UrlOptions{})
 		log.Println(res.SignedURL)
 	}
 
 	return nil
 }
 
-func CleanUP() {
+func (util *UtilConfig) CleanUP() {
 	folderPaths := []string{"./index", "./output", "./videos"}
 
 	for _, folder := range folderPaths {
