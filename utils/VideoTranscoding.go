@@ -29,7 +29,7 @@ func FetchMessage() (Message, error) {
 		err = godotenv.Load("ENVIRONMENT_VARIABLE")
 	}
 	QUEUE_BASE_URL := os.Getenv("QUEUE_BASE_URL")
-
+	log.Println(QUEUE_BASE_URL + "/get-message")
 	res, err := http.Get(QUEUE_BASE_URL + "/get-message")
 	if err != nil {
 		log.Printf("debug: fialed to fetch %s", err)
