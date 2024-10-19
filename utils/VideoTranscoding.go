@@ -24,9 +24,9 @@ type Message struct {
 }
 
 func FetchMessage() (Message, error) {
-	err := godotenv.Load()
+	err := godotenv.Load(".ENVIRONMENT_VARIABLE")
 	if err != nil {
-		return Message{}, err
+		err = godotenv.Load("ENVIRONMENT_VARIABLE")
 	}
 	QUEUE_BASE_URL := os.Getenv("QUEUE_BASE_URL")
 
@@ -52,9 +52,9 @@ func FetchMessage() (Message, error) {
 
 func DownloadFIle(msg Message) ([]byte, error) {
 
-	err := godotenv.Load()
+	err := godotenv.Load(".ENVIRONMENT_VARIABLE")
 	if err != nil {
-		log.Printf("FAILED TO LOAD ENV FILE:[ERROR]:%s", err)
+		err = godotenv.Load("ENVIRONMENT_VARIABLE")
 	}
 	API_URL := os.Getenv("API_URL")
 	API_KEY := os.Getenv("API_KEY")
@@ -140,9 +140,9 @@ func SplitVideoIntoSegments(input string) error {
 
 func UploadSegmentsToSupabase(id string) ([]string, error) {
 	var segmentFiles []string
-	err := godotenv.Load()
+	err := godotenv.Load(".ENVIRONMENT_VARIABLE")
 	if err != nil {
-		log.Printf("FAILED TO LOAD ENV FILE:[ERROR]:%s", err)
+		err = godotenv.Load("ENVIRONMENT_VARIABLE")
 	}
 	API_URL := os.Getenv("API_URL")
 	API_KEY := os.Getenv("API_KEY")
@@ -210,9 +210,9 @@ func CreateM3U8File(segmentFiles []string, id string) error {
 }
 
 func UploadM3U8ToSupabase() error {
-	err := godotenv.Load()
+	err := godotenv.Load(".ENVIRONMENT_VARIABLE")
 	if err != nil {
-		log.Printf("FAILED TO LOAD ENV FILE:[ERROR]:%s", err)
+		err = godotenv.Load("ENVIRONMENT_VARIABLE")
 	}
 	API_URL := os.Getenv("API_URL")
 	API_KEY := os.Getenv("API_KEY")
