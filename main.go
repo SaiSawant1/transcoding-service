@@ -14,6 +14,9 @@ func main() {
 		msg, err := u.FetchMessage()
 
 		if err != nil {
+			if err.Error() == "204 No Content" {
+				continue
+			}
 			log.Printf("FAILED TO FETCH MESSAGE FROM QUEUE:[ERROR]:%s\n", err)
 			continue
 		}

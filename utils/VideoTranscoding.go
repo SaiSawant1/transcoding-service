@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -55,6 +56,9 @@ func NewUtil() *UtilConfig {
 
 func (util *UtilConfig) FetchMessage() (Message, error) {
 	res, err := http.Get(util.QUEUE_BASE_URL + "/get-message")
+	if res.Status == "204 No Content" {
+		return Message{}, errors.New(res.Status)
+	}
 	if err != nil {
 		return Message{}, err
 	}
