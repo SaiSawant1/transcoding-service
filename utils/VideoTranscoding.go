@@ -29,23 +29,19 @@ func FetchMessage() (Message, error) {
 		err = godotenv.Load("ENVIRONMENT_VARIABLE")
 	}
 	QUEUE_BASE_URL := os.Getenv("QUEUE_BASE_URL")
-	log.Println(QUEUE_BASE_URL + "/get-message")
 	res, err := http.Get(QUEUE_BASE_URL + "/get-message")
 	if err != nil {
-		log.Printf("debug: fialed to fetch %s", err)
 		return Message{}, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Printf("debug: fialed to read %s", err)
 		return Message{}, err
 	}
 
 	var msg Message
 	err = json.Unmarshal(body, &msg)
 	if err != nil {
-		log.Printf("debug: %s fialed to Unmarshal %s", body, err)
 		return Message{}, err
 	}
 
@@ -241,7 +237,6 @@ func UploadM3U8ToSupabase() error {
 		// get public url
 		res := client.Storage.GetPublicUrl("m3u8_index", supabasePath, storage_go.UrlOptions{})
 		log.Println(res.SignedURL)
-
 	}
 
 	return nil
