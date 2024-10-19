@@ -6,7 +6,6 @@ RUN apk update && apk add make ffmpeg
 WORKDIR /app
 
 # Declare a volume for data persistence
-VOLUME /app/data
 
 COPY . .
 
