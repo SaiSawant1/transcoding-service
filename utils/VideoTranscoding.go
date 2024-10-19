@@ -32,11 +32,13 @@ func FetchMessage() (Message, error) {
 
 	res, err := http.Get(QUEUE_BASE_URL + "/get-message")
 	if err != nil {
+		log.Printf("debug: fialed to fetch %s", err)
 		return Message{}, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		log.Printf("debug: fialed to read %s", err)
 		return Message{}, err
 	}
 
