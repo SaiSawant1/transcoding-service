@@ -12,13 +12,13 @@ func main() {
 	msg, err := utils.FetchMessage()
 
 	if err != nil {
-		log.Printf("FAILED TO FETCH MESSAGE FROM QUEUE:[ERROR]:%s", err)
+		log.Printf("FAILED TO FETCH MESSAGE FROM QUEUE:[ERROR]:%s\n", err)
 	}
 
 	// download the file
 	fileBytes, err := utils.DownloadFIle(msg)
 	if err != nil {
-		log.Printf("FAILED TO DOWNLOAD FILE FROM STORAGE:[ERROR]:%s", err)
+		log.Printf("FAILED TO DOWNLOAD FILE FROM STORAGE:[ERROR]:%s\n", err)
 		return
 	}
 
@@ -26,14 +26,33 @@ func main() {
 
 	filePath, err := utils.SaveVideoInDir(fileBytes)
 	if err != nil {
-		log.Printf("FAILED TO SAVE VIDEO LOCALY:[ERROR]:%s", err)
+		log.Printf("FAILED TO SAVE VIDEO LOCALY:[ERROR]:%s\n", err)
 		return
 	}
 
 	err = utils.SplitVideoIntoSegments(filePath)
 	if err != nil {
-		log.Printf("FAILED TO TRANSCODE VIDEO:[ERROR]:%s", err)
+		log.Printf("FAILED TO TRANSCODE VIDEO:[ERROR]:%s\n", err)
 		return
 	}
+
+	segments, err := utils.UploadSegmentsToSupabase(msg.ID)
+	if err != nil {
+		log.Printf("FAILED TO UPLOAD VIDEO SEGMENTS:[ERROR]:%s\n", err)
+		return
+	}
+	err = utils.CreateM3U8File(segments, msg.ID)
+	if err != nil {
+		log.Printf("FAILED TO UPLOAD VIDEO SEGMENTS:[ERROR]:%s\n", err)
+		return
+	}
+
+	err = utils.UploadM3U8ToSupabase()
+	if err != nil {
+		log.Printf("FAILED TO UPLOAD VIDEO SEGMENTS:[ERROR]:%s\n", err)
+		return
+	}
+
+	utils.CleanUP()
 
 }
