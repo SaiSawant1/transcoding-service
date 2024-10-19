@@ -3,12 +3,12 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/joho/godotenv"
 	storage_go "github.com/supabase-community/storage-go"
@@ -72,39 +72,66 @@ func DownloadFIle(msg Message) ([]byte, error) {
 
 func SaveVideoInDir(fileBytes []byte) (string, error) {
 
-	dirPath := "./videos"                    // Change to your desired path
-	outputFilePath := dirPath + "/input.mp4" // Change the extension as needed
+	videoPath := "./videos"                   // Change to your desired path
+	inputFilePath := videoPath + "/input.mp4" // Change the extension as needed
 
 	// Ensure the videos directory exists
-	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+	if err := os.MkdirAll(videoPath, os.ModePerm); err != nil {
 		log.Fatalf("FAILED TO CREATE DIRECTORY:[ERROR]:%s", err)
 	}
 
-	// Create output file in the videos directory
-	file, err := os.Create(outputFilePath)
+	// Create input file in the videos directory
+	inputfile, err := os.Create(inputFilePath)
 	if err != nil {
 		log.Println("Error creating file:", err)
 		return "", err
 	}
-	defer file.Close()
+	defer inputfile.Close()
 
 	// Write the byte slice to the file
-	_, err = file.Write(fileBytes)
+	_, err = inputfile.Write(fileBytes)
 	if err != nil {
 		log.Println("Error writing to file:", err)
 		return "", err
 	}
 
-	log.Println("MP4 file created successfully:", outputFilePath)
+	log.Println("MP4 file created successfully:", inputFilePath)
 	return "", nil
 }
 
 // splitVideoIntoSegments splits the video into segments using ffmpeg
+// NOTE:- ffmpeg -i ../videos/input.mp4 -f segment -segment_time 10 -c copy ../output/output%03d.ts
 func SplitVideoIntoSegments(input string) error {
-	cmd := exec.Command("ffmpeg", "-i", input, "-f", "segment", "-segment_time", fmt.Sprintf("%d", 10), "-c", "copy", "output%03d.ts")
-	var out bytes.Buffer
+
+	// create output folder
+
+	// Get the absolute path of the input and output
+	inputPath, err := filepath.Abs("./videos/input.mp4")
+	if err != nil {
+		return err
+	}
+	outputFolder, err := filepath.Abs("./output")
+	if err != nil {
+		return err
+	}
+	outputPath, err := filepath.Abs("./output/output%03d.ts")
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(outputFolder, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cmd := exec.Command("ffmpeg", "-i", inputPath, "-f", "segment", "-segment_time", "10", "-c", "copy", outputPath)
+	var out, stderr bytes.Buffer
 	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+
 	if err := cmd.Run(); err != nil {
+		log.Printf("Command output: %s\n", out.String())
+		log.Printf("Command error: %s\n", stderr.String())
 		return err
 	}
 	log.Println(out.String())

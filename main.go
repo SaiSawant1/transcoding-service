@@ -31,5 +31,9 @@ func main() {
 	}
 
 	err = utils.SplitVideoIntoSegments(filePath)
+	if err != nil {
+		log.Printf("FAILED TO TRANSCODE VIDEO:[ERROR]:%s", err)
+		return
+	}
 
 }
